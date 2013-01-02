@@ -155,33 +155,34 @@ class Mapping(object):
 				return True
 		return False
 
-	def perform_mapping(self, config_name):
+	def perform_mapping(self, ifname):
 		## FIXME(knuq): Set up and pass 'env='
-		proc = subprocess.Popen((self.script, config_name),
+		proc = subprocess.Popen((self.script, ifname),
 				stdin=subprocess.PIPE,
 				stdout=subprocess.PIPE)
 		output = proc.communicate(input=''.join(self.script_input))
 
 		## Ensure the mapping script completed successfully
 		if proc.returncode < 0:
-			logging.error('Mapping script died with signal %d'
+			logging.warn('Mapping script died with signal %d'
 					% -proc.returncode)
 			return None
 		if proc.returncode > 0:
-			logging.error('Mapping script exited with code %d'
+			logging.debug('Mapping script exited with code %d'
 					% proc.returncode)
 			return None
 		if output[0] is None:
-			logging.error('Mapping script produced no output')
+			logging.warn('Mapping script succeeded with no output')
 			return None
 
 		## Check that it produced a valid interface config name
-		ifname = output[0].split('\n')[0]
-		if not utils.valid_interface_name(ifname):
-			logging.error('Invalid interface name: %s' % ifname)
-			return None
+		config_name = output[0].split('\n')[0]
+		if utils.valid_interface_name(config_name):
+			return ifname
 
-		return ifname
+		logging.error('Mapped %s to invalid interface config name: %s'
+				% (ifname, config_name))
+		return None
 
 
 ###
