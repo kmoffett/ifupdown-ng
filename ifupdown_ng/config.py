@@ -142,7 +142,7 @@ class Mapping(object):
 		return self
 
 	def _parse_map(self, ifile, first, rest):
-		self.script_input.append(rest)
+		self.script_input.append(rest + '\n')
 		return self
 
 	def _close_parsing(self, ifile):
@@ -160,7 +160,7 @@ class Mapping(object):
 		proc = subprocess.Popen(self.script, shell=True,
 				stdin=subprocess.PIPE,
 				stdout=subprocess.PIPE)
-		output = proc.communicate(input='blah\n')
+		output = proc.communicate(input=''.join(self.script_input))
 
 		## Ensure the mapping script completed successfully
 		if proc.returncode < 0:
