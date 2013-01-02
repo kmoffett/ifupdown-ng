@@ -3,6 +3,11 @@
 import os.path
 import sys
 
+## Check against our required python version
+if sys.version_info < (2, 7, 0):
+	sys.stderr.write('ifupdown-ng requires Python 2.7 or newer\n')
+	sys.exit(255)
+
 ## Load version information from the same place everything else gets it
 from ifupdown_ng.autogen import version
 
