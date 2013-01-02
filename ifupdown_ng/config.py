@@ -21,6 +21,7 @@ import re
 import sys
 
 from ifupdown_ng import args
+from ifupdown_ng import logging
 from ifupdown_ng import utils
 from ifupdown_ng.autogen.config import *
 
@@ -45,6 +46,7 @@ class InterfacesFile(object):
 		self.line_nr = 0
 		self.lines = lines
 		self.continued_line = None
+		self.exhausted = False
 
 		self.nr_errors = 0
 		self.nr_warnings = 0
@@ -80,10 +82,18 @@ class InterfacesFile(object):
 		return result
 
 	def _handle_one_line(self):
+		if self.exhausted:
+			raise StopIteration()
+
 		try:
-			line = next(self.lines).lstrip().rstrip('\n')
-			self.line_nr += 1
+			try:
+				line = next(self.lines).lstrip().rstrip('\n')
+				self.line_nr += 1
+			except EnvironmentError as e:
+				self.error('Read error: %s' % e.strerror)
+				raise StopIteration()
 		except StopIteration:
+			self.exhausted = True
 			if self.continued_line is None:
 				raise
 			else:
