@@ -134,17 +134,19 @@ class Mapping(object):
 		self.script = None
 		self.script_input = []
 
-	def _parse_option(self, ifile, first, rest):
-		if first == 'script':
-			if self.script:
-				ifile.error("Duplicate 'script' option")
-			self.script = rest
-		elif first == 'map':
-			self.script_input.append(rest)
-		else:
-			ifile.error("Invalid 'mapping' option: %s" % first)
-
+	def _parse_script(self, ifile, first, rest):
+		if self.script:
+			ifile.error("Duplicate 'script' option")
+		self.script = rest
 		return self
+
+	def _parse_map(self, ifile, first, rest):
+		self.script_input.append(rest)
+		return self
+
+	def _close_parsing(self, ifile):
+		if not self.script:
+			ifile.error("No 'script' option was specified")
 
 	def should_map(self, config_name):
 		for pattern in self.matches:
@@ -185,7 +187,7 @@ class InterfaceConfig(object):
 	def __eq__(self, other):
 		return other == (self.name, self.address_family, self.method)
 
-	def _parse_option(self, ifile, first, rest):
+	def _option_parse(self, ifile, first, rest):
 		if not rest:
 			ifile.warn('Option is empty: %s' % first)
 
@@ -202,6 +204,10 @@ class InterfaceConfig(object):
 		else:
 			ifile.error('Duplicate option: %s' % first)
 		return self
+
+	def _close_parsing(self, ifile):
+		## FIXME: Add validation here
+		pass
 
 	def __iter__(self):
 		return self.options.__iter__()
@@ -293,9 +299,10 @@ class SystemConfig(object):
 
 		self.ifile_stack.append(ifile)
 		self._process_interfaces_files()
+		return self
 
 	def _process_interfaces_files(self):
-		block = None
+		stanza = self
 		while self.ifile_stack:
 			ifile = self.ifile_stack[-1]
 			try:
@@ -304,25 +311,36 @@ class SystemConfig(object):
 				self.ifile_stack.pop()
 				self.total_nr_errors += ifile.nr_errors
 				self.total_nr_warnings += ifile.nr_warnings
+				stanza._close_parsing(ifile)
+				stanza = self
 				continue
 
-			parse_funcname = '_parse_%s' % first
-			if hasattr(self, parse_funcname):
-				parse_func = getattr(self, parse_funcname)
-			elif first.startswith('allow-'):
-			 	parse_func = self._parse_auto
-				first = first[6:]
-			elif block:
-				parse_func = block._parse_option.__func__
+			if first.startswith('allow-'):
+				parse_funcname = '_parse_auto'
 			else:
-				ifile.error("Option not in a valid block: %s"
+				parse_funcname = '_parse_%s' % first
+
+			if hasattr(self, parse_funcname):
+				stanza._close_parsing(ifile)
+				stanza = self
+
+			if hasattr(stanza, parse_funcname):
+				parse_func = getattr(stanza, parse_funcname)
+			elif hasattr(stanza, '_option_parse'):
+				parse_func = stanza._option_parse
+			else:
+				ifile.error('Invalid option in this stanza: %s'
 						% first)
 				continue
 
-			block = parse_func(block, ifile, first, rest)
+			stanza = parse_func(ifile, first, rest)
 
-	def _parse_source(self, block, ifile, first, rest):
-		block = None
+		stanza._close_parsing(ifile)
+
+	def _close_parsing(self, ifile):
+		pass
+
+	def _parse_source(self, ifile, first, rest):
 		included_ifiles = []
 		for path in libc.wordexp(rest, libc.WRDE_NOCMD):
 			try:
@@ -332,47 +350,64 @@ class SystemConfig(object):
 
 		## Since this is a stack, put them in reverse order
 		self.ifile_stack.extend(reversed(included_ifiles))
+		return self
 
-		return block
+	def _parse_auto(self, ifile, first, rest):
+		if first.startswith('allow-'):
+			group_name = first[6:]
+		else:
+			group_name = first
 
-	def _parse_auto(self, block, ifile, first, rest):
-		block = None
 		interfaces = rest.split()
-		if not self.ALLOWED_GROUP_NAME_RE.match(first):
-			ifile.error('Invalid statement: allow-%s' % first)
-			return block
+		if not self.ALLOWED_GROUP_NAME_RE.match(group_name):
+			ifile.error('Invalid statement: %s' % first)
+			return self
 		if not interfaces:
-			ifile.error('Empty "allow-*" or "auto" statement')
-			return block
+			ifile.error('Empty "%s" statement' % first)
+			return self
 
-		group = self.allowed.setdefault(first, set())
+		group = self.allowed.setdefault(group_name, set())
 		for ifname in interfaces:
 			if ifile.validate_interface_name(ifname):
 				group.add(ifname)
-		return block
+		return self
 
-	def _parse_mapping(self, block, ifile, first, rest):
-		block = None
+	def _parse_mapping(self, ifile, first, rest):
 		matches = rest.split()
 		if not matches:
 			ifile.error('Empty mapping statement')
-			return block
+			return self
 
-		block = Mapping(matches)
-		self.mappings.append(block)
-		return block
+		stanza = Mapping(matches)
+		self.mappings.append(stanza)
+		return stanza
 
-	def _parse_iface(self, block, ifile, first, rest):
-		block = None
+	def _parse_iface(self, ifile, first, rest):
+		valid = True
+
+		## Parse apart the parameters
 		params = rest.split()
 		if len(params) != 3:
 			ifile.error('Wrong number of parameters to "iface"')
-			return block
+			valid = False
 
-		block = InterfaceConfig(*params)
-		if block in self.configs:
+		config_name    = params.pop(0) if params else ''
+		address_family = params.pop(0) if params else ''
+		method         = params.pop(0) if params else ''
+
+		if not ifile.validate_interface_name(config_name):
+			valid = False
+
+		stanza = InterfaceConfig(config_name, address_family, method)
+		if stanza in self.configs:
 			ifile.error('Duplicate iface: %s', ' '.join(params))
-		else:
-			self.configs[block] = block
-		return block
+			valid = False
 
+		if valid:
+			self.configs[stanza] = stanza
+
+		return stanza
+
+	def _option_parse(self, ifile, first, rest):
+		ifile.error("Option not in a valid stanza: %s" % first)
+		return self
