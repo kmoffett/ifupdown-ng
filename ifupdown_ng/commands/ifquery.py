@@ -28,15 +28,12 @@ class IfQueryCommandHandler(common.CommonCommandHandler):
 	def __init__(self, command):
 		## Initialize the parent class
 		super(IfQueryCommandHandler, self).__init__(command,
-			usage='%(prog)s [<options>] (--all | <iface>...)\n'
-			'       %(prog)s --list')
+			usage='%(prog)s [<options>] <iface>...\n'
+			'       %(prog)s [<options>] --list')
 
 		## Add the mode and interface list flags
 		self.argp.add_argument('-l', '--list', action='store_true',
 			help='List all matching known interfaces')
-
-		self.argp.add_argument('-a', '--all', action='store_true',
-			help='Display all interfaces marked "auto"')
 
 		self.argp.add_argument('iface', type=str, nargs='*',
 			help=argparse.SUPPRESS)
