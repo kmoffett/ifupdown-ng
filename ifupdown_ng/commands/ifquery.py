@@ -19,6 +19,8 @@
 import argparse
 
 from ifupdown_ng import args
+from ifupdown_ng import config
+from ifupdown_ng import logging
 from ifupdown_ng.commands import common
 
 class IfQueryCommandHandler(common.CommonCommandHandler):
@@ -39,5 +41,23 @@ class IfQueryCommandHandler(common.CommonCommandHandler):
 			help=argparse.SUPPRESS)
 
 	def execute(self):
+		## Do not run any commands in this mode
 		args.no_act = True
-		print "BLARG QUERY ME HARDER"
+
+		## Check for nonsensical option combinations
+		if not args.list and not args.iface:
+			self.argp.error('No interfaces specified in query')
+		if args.list and args.iface:
+			self.argp.error('Both --list and interfaces given')
+
+		## Load the configuration
+		sysconfig = config.SystemConfig()
+		sysconfig.load_interfaces_file()
+		sysconfig.log_total_errors(error=logging.fatal)
+
+		## Figure out what to do based on arguments
+		if args.list:
+			print "FIXME: LIST INTERFACES"
+		else:
+			ifaces = ', '.join(args.iface)
+			print "FIXME: QUERY INTERFACES: %s" % ifaces
