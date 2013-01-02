@@ -19,6 +19,7 @@
 import argparse
 
 from ifupdown_ng.commands import common
+from ifupdown_ng import config
 
 class IfUpDownCommandHandler(common.CommonCommandHandler):
 	_COMMANDS = {
@@ -47,4 +48,9 @@ class IfUpDownCommandHandler(common.CommonCommandHandler):
 			help='Process all interfaces marked "auto"')
 
 	def execute(self):
+		## Load the configuration
+		sysconfig = config.SystemConfig()
+		sysconfig.load_interfaces_file()
+		sysconfig.log_total_errors(error=logging.fatal)
+
 		print "BLARG UPDOWN ME HARDER"

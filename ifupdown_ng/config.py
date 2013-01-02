@@ -264,9 +264,32 @@ class SystemConfig(object):
 		self.total_nr_errors = 0
 		self.total_nr_warnings = 0
 
-	def load_interfaces_file(self, ifile):
-		assert isinstance(ifile, InterfacesFile)
+	def log_total_errors(self, warn=logging.warn, error=logging.error):
+		if self.total_nr_errors:
+			error('Broken config: %d errors and %d warnings' % (
+					self.total_nr_errors,
+					self.total_nr_warnings))
+			return True
+		elif self.total_nr_warnings:
+			warn('Unsafe config: %d warnings' %
+					self.total_nr_warnings)
+			return False
+		else:
+			return None
+
+	def load_interfaces_file(self, ifile=None):
 		assert not self.ifile_stack
+
+		## Make sure we have an open interfaces file
+		if ifile is None:
+			ifile = args.interfaces
+		if not isinstance(ifile, InterfacesFile):
+			try:
+				ifile = InterfacesFile(ifile)
+			except EnvironmentError as e:
+				logging.error('%s: %s' % (e.strerror, ifile))
+				self.total_nr_errors += 1
+				return self
 
 		self.ifile_stack.append(ifile)
 		self._process_interfaces_files()
