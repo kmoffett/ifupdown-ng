@@ -15,6 +15,7 @@ from setuptools import setup, find_packages
 setup(
 	name='ifupdown-ng',
 	description='Next-generation network interface configuration tool',
+	url='http://github.com/kmoffett/ifupdown-ng',
 	author='Kyle Moffett',
 	author_email='kyle@moffetthome.net',
 	license='GPLv2',
