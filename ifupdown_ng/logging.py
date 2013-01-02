@@ -1,6 +1,6 @@
 ###
 ## ifupdown-ng  -  Next-generation network interface configuration tool
-## Copyright (C) 2012  Kyle Moffett <kyle@moffetthome.net>
+## Copyright (C) 2012-2013  Kyle Moffett <kyle@moffetthome.net>
 ##
 ## This program is free software; you can redistribute it and/or modify it
 ## under the terms of version 2 of the GNU General Public License, as
