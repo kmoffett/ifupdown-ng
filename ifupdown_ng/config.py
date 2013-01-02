@@ -157,7 +157,7 @@ class Mapping(object):
 
 	def perform_mapping(self, config_name):
 		## FIXME(knuq): Set up and pass 'env='
-		proc = subprocess.Popen(self.script, shell=True,
+		proc = subprocess.Popen((self.script, config_name),
 				stdin=subprocess.PIPE,
 				stdout=subprocess.PIPE)
 		output = proc.communicate(input=''.join(self.script_input))
