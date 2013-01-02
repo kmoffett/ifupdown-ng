@@ -18,6 +18,7 @@
 
 import os
 import re
+import subprocess
 import sys
 
 from ifupdown_ng import args
@@ -155,7 +156,32 @@ class Mapping(object):
 		return False
 
 	def perform_mapping(self, config_name):
-		raise NotImplementedError()
+		## FIXME(knuq): Set up and pass 'env='
+		proc = subprocess.Popen(self.script, shell=True,
+				stdin=subprocess.PIPE,
+				stdout=subprocess.PIPE)
+		output = proc.communicate(input='blah\n')
+
+		## Ensure the mapping script completed successfully
+		if proc.returncode < 0:
+			logging.error('Mapping script died with signal %d'
+					% -proc.returncode)
+			return None
+		if proc.returncode > 0:
+			logging.error('Mapping script exited with code %d'
+					% proc.returncode)
+			return None
+		if output[0] is None:
+			logging.error('Mapping script produced no output')
+			return None
+
+		## Check that it produced a valid interface config name
+		ifname = output[0].split('\n')[0]
+		if not utils.valid_interface_name(ifname):
+			logging.error('Invalid interface name: %s' % ifname)
+			return None
+
+		return ifname
 
 
 ###
