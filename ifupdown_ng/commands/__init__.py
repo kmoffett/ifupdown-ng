@@ -40,7 +40,7 @@ class CommandHandlerType(type):
 		if not hasattr(cls, 'COMMANDS'):
 			return cls
 
-		for command, description in cls.COMMANDS.iteritems():
+		for command in cls.COMMANDS:
 			assert command not in mcs._known_commands
 			mcs._known_commands[command] = cls
 			if len(command) > mcs._max_command_len:
