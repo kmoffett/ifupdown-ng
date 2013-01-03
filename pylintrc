@@ -1,0 +1,72 @@
+###
+## pylintrc  -  pylint configuration for ifupdown-ng
+## Copyright (C) 2013  Kyle Moffett <kyle@moffetthome.net>
+##
+## This program is free software; you can redistribute it and/or modify it
+## under the terms of version 2 of the GNU General Public License, as
+## published by the Free Software Foundation.
+##
+## This program is distributed in the hope that it will be useful, but
+## WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+## or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+## for more details.
+##
+## You should have received a copy of the GNU General Public License along
+## with this program; otherwise you can obtain it here:
+##   http://www.gnu.org/licenses/gpl-2.0.txt
+###
+
+[MASTER]
+
+## Set up a black-list of various things
+ignore=.git
+ignore=doc
+ignore=build
+
+
+[MESSAGES CONTROL]
+
+## Disable messages that are particularly spammy:
+##   I0011: Locally disabling %s
+disable=I0011
+
+[REPORTS]
+
+## Make sure message-ids are present in the output to make it easy to add
+## them to the ignore list if they are spammy.
+include-ids=yes
+
+## We don't need the full report, just a list of diagnostics
+reports=no
+
+
+[FORMAT]
+
+## We expect single-tab indents (not spaces)
+indent-string='\t'
+
+
+[TYPECHECK]
+
+## Some classes have dynamically-created member attributes, so ignore them
+## when verifying that member attributes exist
+ignored-classes=Namespace
+
+## Some members are dynamically generated (such as by pymox)
+generated-members=AndRaise,AndReturn,InAnyOrder,MultipleTimes
+
+
+[CLASSES]
+
+## Not sure what this does, but the default has only zope-specific methods
+ignore-iface-methods=
+
+## These methods may assign instance attributes for the first time
+defining-attr-methods=__new__,__init__
+
+
+[DESIGN]
+
+## Disable some warnings and adjust other defaults so they aren't stupidly
+## pedantic about code architecture.
+min-public-methods=0
