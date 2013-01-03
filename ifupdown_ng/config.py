@@ -1,20 +1,20 @@
-###
-## ifupdown-ng  -  Next-generation network interface configuration tool
-## Copyright (C) 2012-2013  Kyle Moffett <kyle@moffetthome.net>
-##
-## This program is free software; you can redistribute it and/or modify it
-## under the terms of version 2 of the GNU General Public License, as
-## published by the Free Software Foundation.
-##
-## This program is distributed in the hope that it will be useful, but
-## WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
-## or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
-## for more details.
-##
-## You should have received a copy of the GNU General Public License along
-## with this program; otherwise you can obtain it here:
-##   http://www.gnu.org/licenses/gpl-2.0.txt
-###
+"""
+ifupdown_ng.config  -  interfaces(5) configuration parsing and operation
+Copyright (C) 2012-2013  Kyle Moffett <kyle@moffetthome.net>
+
+This program is free software; you can redistribute it and/or modify it
+under the terms of version 2 of the GNU General Public License, as
+published by the Free Software Foundation.
+
+This program is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+for more details.
+
+You should have received a copy of the GNU General Public License along
+with this program; otherwise you can obtain it here:
+  http://www.gnu.org/licenses/gpl-2.0.txt
+"""
 
 import os
 import re
@@ -28,6 +28,7 @@ from ifupdown_ng.autogen.config import *
 
 INTERFACES_FILE = os.path.join(CONFIG_DIR, 'interfaces')
 def hook_dir(phase_name):
+	"""Compute the hook-script directory for a particular phase."""
 	return os.path.join(CONFIG_DIR, phase_name + '.d')
 
 ###
@@ -65,18 +66,19 @@ class InterfacesFile(object):
 		self.log("warning", msg)
 
 	def validate_interface_name(self, ifname):
+		"""Report an error if an interface name is not valid"""
 		if utils.valid_interface_name(ifname):
 			return True
 
 		self.error('Invalid interface name: %s' % ifname)
 		return False
 
-	## This object is its own iterator
 	def __iter__(self):
+		"""Iterate over this object (it is already an iterator)"""
 		return self
 
-	## Returns (first_word, rest_of_line) for each statement
 	def next(self):
+		"""Return the next statement as (first_word, rest_of_line)"""
 		result = None
 		while result is None:
 			result = self._handle_one_line()
@@ -156,7 +158,6 @@ class Mapping(object):
 		return False
 
 	def perform_mapping(self, ifname):
-		## FIXME(knuq): Set up and pass 'env='
 		proc = subprocess.Popen((self.script, ifname),
 				stdin=subprocess.PIPE,
 				stdout=subprocess.PIPE)
