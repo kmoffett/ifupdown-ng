@@ -21,10 +21,10 @@ import re
 import subprocess
 import sys
 
-from ifupdown_ng import args
 from ifupdown_ng import logging
 from ifupdown_ng import utils
 from ifupdown_ng.autogen.config import *
+from ifupdown_ng.commands import ARGS
 
 INTERFACES_FILE = os.path.join(CONFIG_DIR, 'interfaces')
 def hook_dir(phase_name):
@@ -316,7 +316,7 @@ class SystemConfig(object):
 
 		## Make sure we have an open interfaces file
 		if ifile is None:
-			ifile = args.interfaces
+			ifile = ARGS.interfaces
 		if not isinstance(ifile, InterfacesFile):
 			try:
 				ifile = InterfacesFile(ifile)

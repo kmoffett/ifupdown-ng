@@ -18,9 +18,9 @@ with this program; otherwise you can obtain it here:
 
 import argparse
 
-from ifupdown_ng import args
 from ifupdown_ng import config
 from ifupdown_ng import logging
+from ifupdown_ng.commands import ARGS
 from ifupdown_ng.commands import common
 
 class IfQueryCommandHandler(common.CommonCommandHandler):
@@ -42,12 +42,12 @@ class IfQueryCommandHandler(common.CommonCommandHandler):
 
 	def execute(self):
 		## Do not run any commands in this mode
-		args.no_act = True
+		ARGS.no_act = True
 
 		## Check for nonsensical option combinations
-		if not args.list and not args.iface:
+		if not ARGS.list and not ARGS.iface:
 			self.argp.error('No interfaces specified in query')
-		if args.list and args.iface:
+		if ARGS.list and ARGS.iface:
 			self.argp.error('Both --list and interfaces given')
 
 		## Load the configuration
@@ -56,8 +56,8 @@ class IfQueryCommandHandler(common.CommonCommandHandler):
 		sysconfig.log_total_errors(error=logging.fatal)
 
 		## Figure out what to do based on arguments
-		if args.list:
+		if ARGS.list:
 			print "FIXME: LIST INTERFACES"
 		else:
-			ifaces = ', '.join(args.iface)
+			ifaces = ', '.join(ARGS.iface)
 			print "FIXME: QUERY INTERFACES: %s" % ifaces

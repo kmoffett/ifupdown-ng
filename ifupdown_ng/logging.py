@@ -18,7 +18,7 @@ with this program; otherwise you can obtain it here:
 
 import sys
 
-from ifupdown_ng import args
+from ifupdown_ng.commands import ARGS
 
 total_errors = 0
 total_warnings = 0
@@ -50,5 +50,5 @@ def info(message):
 
 def debug(message):
 	"""Display a debug message if --verbose was passed"""
-	if args.verbose:
+	if ARGS.verbose:
 		sys.stderr.write('DEBUG: %s\n' % message)

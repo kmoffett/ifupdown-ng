@@ -20,8 +20,12 @@ import argparse
 import os.path
 import sys
 
-from ifupdown_ng import args
-from ifupdown_ng.autogen.version import *
+from ifupdown_ng.autogen.version import VERSION
+
+
+## This is a namespace used to hold all the parsed command-line arguments
+ARGS = argparse.Namespace()
+
 
 ## This simple metaclass maintains a database of all command handler classes
 ## and provides a main() classmethod that can be used to pick one at runtime.
@@ -124,7 +128,7 @@ with this program; otherwise you can obtain it here:
 
 	def main(self, argv):
 		## Perform argument parsing and then call execute()
-		self.argp.parse_args(argv, namespace=args)
+		self.argp.parse_args(argv, namespace=ARGS)
 		return self.execute() or 0
 
 	def execute(self):
