@@ -24,7 +24,7 @@ from ifupdown_ng.commands import ARGS
 from ifupdown_ng.commands import common
 
 class IfQueryCommandHandler(common.CommonCommandHandler):
-	_COMMANDS = {
+	COMMANDS = {
 		'ifquery': 'Display network interface configuration and state',
 	}
 	def __init__(self, command):

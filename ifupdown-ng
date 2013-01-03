@@ -17,9 +17,13 @@ with this program; otherwise you can obtain it here:
   http://www.gnu.org/licenses/gpl-2.0.txt
 """
 
-## Load various commands that will be used
+## Load various commands that will be used.  We don't actually care about any
+## objects provided here, just that the classes are loaded and register with
+## the main function in ifupdown_ng.commands.
+# pylint: disable-msg=W0611
 import ifupdown_ng.commands.ifupdown
 import ifupdown_ng.commands.ifquery
+# pylint: enable-msg=W0611
 
 ## Now execute the main function
 from ifupdown_ng.commands import main

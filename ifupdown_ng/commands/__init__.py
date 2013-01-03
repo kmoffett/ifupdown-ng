@@ -37,10 +37,10 @@ class CommandHandlerType(type):
 		cls = type.__new__(mcs, name, bases, namespace)
 
 		## Allow abstract base classes
-		if not hasattr(cls, '_COMMANDS'):
+		if not hasattr(cls, 'COMMANDS'):
 			return cls
 
-		for command, description in cls._COMMANDS.iteritems():
+		for command, description in cls.COMMANDS.iteritems():
 			assert command not in mcs._known_commands
 			mcs._known_commands[command] = cls
 			if len(command) > mcs._max_command_len:
@@ -117,7 +117,7 @@ with this program; otherwise you can obtain it here:
 	def __init__(self, command, **kwargs):
 		## Create the argument parser
 		self.argp = argparse.ArgumentParser(prog=command,
-				description=self._COMMANDS[command],
+				description=self.COMMANDS[command],
 				**kwargs)
 		self.command = command
 

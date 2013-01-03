@@ -30,6 +30,7 @@ ignore=build
 ##   I0011: Locally disabling %s
 disable=I0011
 
+
 [REPORTS]
 
 ## Make sure message-ids are present in the output to make it easy to add
@@ -38,6 +39,12 @@ include-ids=yes
 
 ## We don't need the full report, just a list of diagnostics
 reports=no
+
+
+[BASIC]
+
+## Modified to allow assignment of globals named "main"
+const-rgx=(([A-Z_][A-Z0-9_]*)|(__.*__)|main)$
 
 
 [FORMAT]

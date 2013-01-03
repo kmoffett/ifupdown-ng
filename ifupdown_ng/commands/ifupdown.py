@@ -20,9 +20,10 @@ import argparse
 
 from ifupdown_ng.commands import common
 from ifupdown_ng import config
+from ifupdown_ng import logging
 
 class IfUpDownCommandHandler(common.CommonCommandHandler):
-	_COMMANDS = {
+	COMMANDS = {
 		'ifup': 'Bring up network interfaces',
 		'ifdown': 'Take down network interfaces',
 	}

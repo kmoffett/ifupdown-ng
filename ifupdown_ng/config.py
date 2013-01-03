@@ -16,6 +16,7 @@ with this program; otherwise you can obtain it here:
   http://www.gnu.org/licenses/gpl-2.0.txt
 """
 
+import fnmatch
 import os
 import re
 import subprocess
@@ -164,8 +165,8 @@ class InterfacesFile(object):
 			try:
 				line = next(self.lines).lstrip().rstrip('\n')
 				self.pos.next_line()
-			except EnvironmentError as e:
-				self.error('Read error: %s' % e.strerror)
+			except EnvironmentError as ex:
+				self.error('Read error: %s' % ex.strerror)
 				raise StopIteration()
 		except StopIteration:
 			if self.autoclose:
@@ -218,13 +219,13 @@ class Mapping(object):
 		self.script = None
 		self.script_input = []
 
-	def _parse_script(self, ifile, first, rest):
+	def _parse_script(self, ifile, _first, rest):
 		if self.script:
 			ifile.error("Duplicate 'script' option")
 		self.script = rest
 		return self
 
-	def _parse_map(self, ifile, first, rest):
+	def _parse_map(self, _ifile, _first, rest):
 		self.script_input.append(rest + '\n')
 		return self
 
@@ -326,23 +327,23 @@ class InterfaceConfig(object):
 			yield (option, self[option])
 
 	def __getitem__(self, option):
-		assert self.VALID_OPTIONS_RE.match(option)
+		assert self.VALID_OPTION_RE.match(option)
 		value = self.options[option]
-		if option in self.MULTIVALUED_OPTIONS:
+		if option in self.MULTIVALUE_OPTIONS:
 			assert isinstance(value, list)
 		else:
 			assert isinstance(value, basestring)
 		return value
 
 	def __setitem__(self, option, value):
-		parse = self.VALID_OPTIONS_RE.match(option)
+		parse = self.VALID_OPTION_RE.match(option)
 		assert parse
 		assert isinstance(value, basestring)
 
 		override_ok = not parse.group(2)
 		option = parse.group(1)
 
-		if option in self.MULTIVALUED_OPTIONS:
+		if option in self.MULTIVALUE_OPTIONS:
 			self.options.setdefault(option, []).append(value)
 		elif option not in self.options or override_ok:
 			self.options[option] = value
@@ -366,7 +367,7 @@ class SystemConfig(object):
 	def __init__(self):
 		self.allowed = dict()
 		self.configs = dict()
-		self.mappings = dict()
+		self.mappings = []
 		self.ifile_stack = []
 		self.total_nr_errors = 0
 		self.total_nr_warnings = 0
@@ -374,8 +375,8 @@ class SystemConfig(object):
 	def clear(self):
 		self.allowed.clear()
 		self.configs.clear()
-		self.mappings.clear()
-		self.ifile_stack.clear()
+		del self.mappings[:]
+		del self.ifile_stack[:]
 		self.total_nr_errors = 0
 		self.total_nr_warnings = 0
 
@@ -401,8 +402,8 @@ class SystemConfig(object):
 		if not isinstance(ifile, InterfacesFile):
 			try:
 				ifile = InterfacesFile(ifile)
-			except EnvironmentError as e:
-				logging.error('%s: %s' % (e.strerror, ifile))
+			except EnvironmentError as ex:
+				logging.error('%s: %s' % (ex.strerror, ifile))
 				self.total_nr_errors += 1
 				return self
 
@@ -449,13 +450,13 @@ class SystemConfig(object):
 	def _close_parsing(self, ifile):
 		pass
 
-	def _parse_source(self, ifile, first, rest):
+	def _parse_source(self, ifile, _first, rest):
 		included_ifiles = []
 		for path in libc.wordexp(rest, libc.WRDE_NOCMD):
 			try:
 				included_ifiles.append(InterfacesFile(path))
-			except EnvironmentError as e:
-				ifile.error('%s: %s' % (e.strerror, path))
+			except EnvironmentError as ex:
+				ifile.error('%s: %s' % (ex.strerror, path))
 
 		## Since this is a stack, put them in reverse order
 		self.ifile_stack.extend(reversed(included_ifiles))
@@ -481,7 +482,7 @@ class SystemConfig(object):
 				group.add(ifname)
 		return self
 
-	def _parse_mapping(self, ifile, first, rest):
+	def _parse_mapping(self, ifile, _first, rest):
 		matches = rest.split()
 		if not matches:
 			ifile.error('Empty mapping statement')
@@ -491,7 +492,7 @@ class SystemConfig(object):
 		self.mappings.append(stanza)
 		return stanza
 
-	def _parse_iface(self, ifile, first, rest):
+	def _parse_iface(self, ifile, _first, rest):
 		valid = True
 
 		## Parse apart the parameters
@@ -517,6 +518,6 @@ class SystemConfig(object):
 
 		return stanza
 
-	def _option_parse(self, ifile, first, rest):
+	def _option_parse(self, ifile, first, _rest):
 		ifile.error("Option not in a valid stanza: %s" % first)
 		return self
