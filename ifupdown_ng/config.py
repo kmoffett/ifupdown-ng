@@ -31,39 +31,101 @@ def hook_dir(phase_name):
 	"""Compute the hook-script directory for a particular phase."""
 	return os.path.join(CONFIG_DIR, phase_name + '.d')
 
-###
-## InterfacesFile()  -  Parse an interfaces(5)-format file into statements
-###
-## Iterate over this object to parse a series of lines into discrete
-## statements according to the interfaces(5) format.
-##
-## This ignores blank lines and comments and removes line continuations.
-###
-class InterfacesFile(object):
-	def __init__(self, filename, lines=None):
-		if lines is None:
-			lines = open(filename, 'rU')
+class FilePosition(object):
+	"""Store the current file name and line number for later log messages
 
+	This is a simple wrapper class which allows the current filename and
+	line number to be output in diagnostic messages long after the file
+	has been closed.
+
+	Attributes:
+		filename: Path to the interfaces(5) file
+		line_nr: Current line number
+	"""
+	__slots__ = ('filename', 'line_nr')
+
+	def __init__(self, filename, line_nr=0):
+		"""Initializes a FilePosition object"""
 		self.filename = filename
-		self.line_nr = 0
+		self.line_nr = line_nr
+
+	def copy(self):
+		"""Clone a FilePosition object"""
+		return self.__class__(self.filename, self.line_nr)
+
+	def next_line(self):
+		"""Move to the next line"""
+		self.line_nr += 1
+
+	def log(self, prefix, msg):
+		"""Log a message with the current filename and line-number"""
+		sys.stderr.write("%s:%d: %s: %s\n" %
+				(self.filename, self.line_nr, prefix, msg))
+
+class InterfacesFile(object):
+	"""Parse an interfaces(5)-format file into single statements
+
+	An iterator which yields individual statements from a file in the
+	interfaces(5) format given a sequence of lines.
+
+	This ignores blank lines and comments and removes backslash-newline
+	line continuations, then splits the result into first-word and
+	rest-of-line tokens.
+
+	Attributes:
+		lines: Iterator yielding a sequence of interfaces(5) lines
+		autoclose: Automatically call 'lines.close()' when exhausted
+		pos: The FilePosition object tracking the current line
+		continued_line: Partially accumulated line continuation
+		nr_errors: The total number of errors found in this file
+		nr_warnings: The total number of warnings found in this file
+	"""
+
+	def __init__(self, filename, lines=None, autoclose=False):
+		"""Initialze an InterfacesFile from a given file
+
+		If the 'lines' iterator argument is not specified, then the
+		file specified by 'filename' will be automatically opened for
+		read access with universal newlines enabled.
+
+		Arguments:
+			filename: Path to the interfaces(5) file
+			lines: Optional iterator yielding a sequence of lines
+			autoclose: Boolean indicating to call 'lines.close()'
+				when the 'lines' iterator is exhausted.  This
+				will always be "True" if lines is unset.
+
+		Raises:
+		    OSError: If 'lines' is unspecified and 'open()' fails
+		    IOError: If 'lines' is unspecified and 'open()' fails
+		"""
+		## Set up variables first so __del__ can run even if an
+		## exception occurs in the open() call.
 		self.lines = lines
+		self.pos = FilePosition(filename)
+		self.autoclose = autoclose
 		self.continued_line = None
-		self.exhausted = False
 
 		self.nr_errors = 0
 		self.nr_warnings = 0
 
-	def log(self, prefix, msg):
-		sys.stderr.write("%s:%d: %s: %s\n" %
-				(self.filename, self.line_nr, prefix, msg))
+		if self.lines is None:
+			self.autoclose = True
+			self.lines = open(filename, 'rU')
 
-	def error(self, msg):
+	def error(self, msg, pos=None):
+		"""Report an error in the file"""
 		self.nr_errors += 1
-		self.log("error", msg)
+		if pos is None:
+			pos = self.pos
+		pos.log("error", msg)
 
-	def warn(self, msg):
+	def warn(self, msg, pos=None):
+		"""Report a warning in the file"""
 		self.nr_warnings += 1
-		self.log("warning", msg)
+		if pos is None:
+			pos = self.pos
+		pos.log("warning", msg)
 
 	def validate_interface_name(self, ifname):
 		"""Report an error if an interface name is not valid"""
@@ -85,18 +147,31 @@ class InterfacesFile(object):
 		return result
 
 	def _handle_one_line(self):
-		if self.exhausted:
+		"""Parse a single line and maybe return a completed statement
+
+		Raises:
+			StopIteration: If the input is exhausted and no more
+				statements are available for read.
+		Returns:
+			A completed statement as (first_word, rest_of_line)
+			if one is available, otherwise returns None if more
+			work remains to be done.
+		"""
+		if self.lines is None:
 			raise StopIteration()
 
 		try:
 			try:
 				line = next(self.lines).lstrip().rstrip('\n')
-				self.line_nr += 1
+				self.pos.next_line()
 			except EnvironmentError as e:
 				self.error('Read error: %s' % e.strerror)
 				raise StopIteration()
 		except StopIteration:
-			self.exhausted = True
+			if self.autoclose:
+				self.lines.close()
+			self.lines = None
+
 			if self.continued_line is None:
 				raise
 			else:
@@ -121,6 +196,12 @@ class InterfacesFile(object):
 		fields = line.split(None, 1)
 		if fields:
 			return (fields[0], fields[1])
+
+	def __del__(self):
+		"""Release resources held by this object"""
+		if self.autoclose and self.lines is not None:
+			self.lines.close()
+		self.lines = None
 
 
 ###
