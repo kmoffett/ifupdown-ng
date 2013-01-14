@@ -20,15 +20,17 @@ with this program; otherwise you can obtain it here:
 from __future__ import absolute_import
 
 import fnmatch
+import logging
 import os
 import re
 import subprocess
 import sys
 
-from ifupdown_ng import logging
 from ifupdown_ng import utils
 from ifupdown_ng.autogen.config import *
 from ifupdown_ng.commands import ARGS
+
+logger = logging.getLogger(__name__)
 
 INTERFACES_FILE = os.path.join(CONFIG_DIR, 'interfaces')
 def hook_dir(phase_name):
@@ -250,15 +252,15 @@ class Mapping(object):
 
 		## Ensure the mapping script completed successfully
 		if proc.returncode < 0:
-			logging.warn('Mapping script died with signal %d'
+			logger.warning('Mapping script died with signal %d'
 					% -proc.returncode)
 			return None
 		if proc.returncode > 0:
-			logging.debug('Mapping script exited with code %d'
+			logger.debug('Mapping script exited with code %d'
 					% proc.returncode)
 			return None
 		if output[0] is None:
-			logging.warn('Mapping script succeeded with no output')
+			logger.warning('Mapping script succeeded with no output')
 			return None
 
 		## Check that it produced a valid interface config name
@@ -266,7 +268,7 @@ class Mapping(object):
 		if utils.valid_interface_name(config_name):
 			return ifname
 
-		logging.error('Mapped %s to invalid interface config name: %s'
+		logger.error('Mapped %s to invalid interface config name: %s'
 				% (ifname, config_name))
 		return None
 
@@ -383,14 +385,14 @@ class SystemConfig(object):
 		self.total_nr_errors = 0
 		self.total_nr_warnings = 0
 
-	def log_total_errors(self, warn=logging.warn, error=logging.error):
+	def log_total_errors(self):
 		if self.total_nr_errors:
-			error('Broken config: %d errors and %d warnings' % (
+			logger.error('Broken config: %d errors and %d warnings' % (
 					self.total_nr_errors,
 					self.total_nr_warnings))
 			return True
 		elif self.total_nr_warnings:
-			warn('Unsafe config: %d warnings' %
+			logger.warning('Unsafe config: %d warnings' %
 					self.total_nr_warnings)
 			return False
 		else:
@@ -406,7 +408,7 @@ class SystemConfig(object):
 			try:
 				ifile = InterfacesFile(ifile)
 			except EnvironmentError as ex:
-				logging.error('%s: %s' % (ex.strerror, ifile))
+				logger.error('%s: %s' % (ex.strerror, ifile))
 				self.total_nr_errors += 1
 				return self
 

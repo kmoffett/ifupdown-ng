@@ -20,10 +20,12 @@ with this program; otherwise you can obtain it here:
 from __future__ import absolute_import
 
 import argparse
+import logging
 import os.path
 import sys
 
 from ifupdown_ng.autogen.version import VERSION
+from ifupdown_ng import logfilter
 
 
 ## This is a namespace used to hold all the parsed command-line arguments
@@ -117,6 +119,10 @@ with this program; otherwise you can obtain it here:
 """
 	) % VERSION
 
+	_LOG_LEVELS = frozenset((
+		'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'
+	))
+
 	def __init__(self, command, **kwargs):
 		## Create the argument parser
 		self.argp = argparse.ArgumentParser(prog=command,
@@ -129,9 +135,30 @@ with this program; otherwise you can obtain it here:
 			version=self.APP_VERSION_COPYRIGHT,
 			help='Display the version and copyright')
 
+		self.argp.add_argument('--log-level',
+			choices=self._LOG_LEVELS, default='INFO',
+			help='Control which messages are displayed')
+
 	def main(self, argv):
-		## Perform argument parsing and then call execute()
+		## Before doing anything that might generate log messages,
+		## set up the default global stderr logging handler.
+		logging.basicConfig(format='%(levelname)s: %(message)s')
+		self.logger = logging.getLogger()
+
+		## Keep track of how many total errors/warnings occur
+		self.log_total = logfilter.LogCount()
+		self.logger.addFilter(self.log_total)
+
+		## Begin redirecting python warnings into the logging system
+		logging.captureWarnings(True)
+
+		## Perform argument parsing
 		self.argp.parse_args(argv, namespace=ARGS)
+
+		## Set up the global log-level
+		self.logger.setLevel(getattr(logging, ARGS.log_level))
+
+		## Now actually execute the command
 		return self.execute() or 0
 
 	def execute(self):

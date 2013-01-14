@@ -20,11 +20,12 @@ with this program; otherwise you can obtain it here:
 from __future__ import absolute_import
 
 import argparse
+import logging
+import sys
 
-from ifupdown_ng import config
-from ifupdown_ng import logging
 from ifupdown_ng.commands import ARGS
 from ifupdown_ng.commands import common
+from ifupdown_ng import config
 
 class IfQueryCommandHandler(common.CommonCommandHandler):
 	COMMANDS = {
@@ -56,7 +57,10 @@ class IfQueryCommandHandler(common.CommonCommandHandler):
 		## Load the configuration
 		sysconfig = config.SystemConfig()
 		sysconfig.load_interfaces_file()
-		sysconfig.log_total_errors(error=logging.fatal)
+		sysconfig.log_total_errors()
+		if self.log_total.nr_logs_above(logging.ERROR):
+			self.logger.critical('Not safe to continue, exiting...')
+			sys.exit(255)
 
 		## Figure out what to do based on arguments
 		if ARGS.list:
