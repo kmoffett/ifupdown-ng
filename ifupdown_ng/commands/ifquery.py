@@ -25,7 +25,7 @@ import sys
 
 from ifupdown_ng.commands import ARGS
 from ifupdown_ng.commands import common
-from ifupdown_ng import config
+from ifupdown_ng.config import parser
 
 class IfQueryCommandHandler(common.CommonCommandHandler):
 	COMMANDS = {
@@ -55,7 +55,7 @@ class IfQueryCommandHandler(common.CommonCommandHandler):
 			self.argp.error('Both --list and interfaces given')
 
 		## Load the configuration
-		sysconfig = config.SystemConfig()
+		sysconfig = parser.SystemConfig()
 		sysconfig.load_interfaces_file()
 		sysconfig.log_total_errors()
 		if self.log_total.nr_logs_above(logging.ERROR):

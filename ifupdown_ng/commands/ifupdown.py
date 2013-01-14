@@ -24,7 +24,7 @@ import logging
 import sys
 
 from ifupdown_ng.commands import common
-from ifupdown_ng import config
+from ifupdown_ng.config import parser
 
 class IfUpDownCommandHandler(common.CommonCommandHandler):
 	COMMANDS = {
@@ -54,7 +54,7 @@ class IfUpDownCommandHandler(common.CommonCommandHandler):
 
 	def execute(self):
 		## Load the configuration
-		sysconfig = config.SystemConfig()
+		sysconfig = parser.SystemConfig()
 		sysconfig.load_interfaces_file()
 		sysconfig.log_total_errors()
 		if self.log_total.nr_logs_above(logging.ERROR):
