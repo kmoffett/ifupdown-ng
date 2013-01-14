@@ -16,6 +16,9 @@ with this program; otherwise you can obtain it here:
   http://www.gnu.org/licenses/gpl-2.0.txt
 """
 
+## Futureproofing boilerplate
+from __future__ import absolute_import
+
 import argparse
 
 from ifupdown_ng.commands import common

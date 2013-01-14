@@ -7,6 +7,9 @@ if sys.version_info < (2, 7, 0):
 	sys.stderr.write('ifupdown-ng requires Python 2.7 or newer\n')
 	sys.exit(255)
 
+## Futureproofing boilerplate
+from __future__ import absolute_import
+
 ## Load version information from the same place everything else gets it
 from ifupdown_ng.autogen import version
 

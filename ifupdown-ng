@@ -17,6 +17,9 @@ with this program; otherwise you can obtain it here:
   http://www.gnu.org/licenses/gpl-2.0.txt
 """
 
+## Futureproofing boilerplate
+from __future__ import absolute_import
+
 ## Load various commands that will be used.  We don't actually care about any
 ## objects provided here, just that the classes are loaded and register with
 ## the main function in ifupdown_ng.commands.
