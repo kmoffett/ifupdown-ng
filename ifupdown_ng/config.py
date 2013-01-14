@@ -26,9 +26,11 @@ import re
 import subprocess
 import sys
 
+from ifupdown_ng import parser
 from ifupdown_ng import utils
 from ifupdown_ng.autogen.config import *
 from ifupdown_ng.commands import ARGS
+
 
 logger = logging.getLogger(__name__)
 
@@ -37,38 +39,8 @@ def hook_dir(phase_name):
 	"""Compute the hook-script directory for a particular phase."""
 	return os.path.join(CONFIG_DIR, phase_name + '.d')
 
-class FilePosition(object):
-	"""Store the current file name and line number for later log messages
 
-	This is a simple wrapper class which allows the current filename and
-	line number to be output in diagnostic messages long after the file
-	has been closed.
-
-	Attributes:
-		filename: Path to the interfaces(5) file
-		line_nr: Current line number
-	"""
-	__slots__ = ('filename', 'line_nr')
-
-	def __init__(self, filename, line_nr=0):
-		"""Initializes a FilePosition object"""
-		self.filename = filename
-		self.line_nr = line_nr
-
-	def copy(self):
-		"""Clone a FilePosition object"""
-		return self.__class__(self.filename, self.line_nr)
-
-	def next_line(self):
-		"""Move to the next line"""
-		self.line_nr += 1
-
-	def log(self, prefix, msg):
-		"""Log a message with the current filename and line-number"""
-		sys.stderr.write("%s:%d: %s: %s\n" %
-				(self.filename, self.line_nr, prefix, msg))
-
-class InterfacesFile(object):
+class InterfacesFile(parser.FileParser):
 	"""Parse an interfaces(5)-format file into single statements
 
 	An iterator which yields individual statements from a file in the
@@ -79,59 +51,12 @@ class InterfacesFile(object):
 	rest-of-line tokens.
 
 	Attributes:
-		lines: Iterator yielding a sequence of interfaces(5) lines
-		autoclose: Automatically call 'lines.close()' when exhausted
-		pos: The FilePosition object tracking the current line
 		continued_line: Partially accumulated line continuation
-		nr_errors: The total number of errors found in this file
-		nr_warnings: The total number of warnings found in this file
 	"""
 
-	def __init__(self, filename, lines=None, autoclose=False):
-		"""Initialze an InterfacesFile from a given file
-
-		If the 'lines' iterator argument is not specified, then the
-		file specified by 'filename' will be automatically opened for
-		read access with universal newlines enabled.
-
-		Arguments:
-			filename: Path to the interfaces(5) file
-			lines: Optional iterator yielding a sequence of lines
-			autoclose: Boolean indicating to call 'lines.close()'
-				when the 'lines' iterator is exhausted.  This
-				will always be "True" if lines is unset.
-
-		Raises:
-		    OSError: If 'lines' is unspecified and 'open()' fails
-		    IOError: If 'lines' is unspecified and 'open()' fails
-		"""
-		## Set up variables first so __del__ can run even if an
-		## exception occurs in the open() call.
-		self.lines = lines
-		self.pos = FilePosition(filename)
-		self.autoclose = autoclose
+	def __init__(self, *args, **kwargs):
+		super(InterfacesFile, self).__init__(*args, **kwargs)
 		self.continued_line = None
-
-		self.nr_errors = 0
-		self.nr_warnings = 0
-
-		if self.lines is None:
-			self.autoclose = True
-			self.lines = open(filename, 'rU')
-
-	def error(self, msg, pos=None):
-		"""Report an error in the file"""
-		self.nr_errors += 1
-		if pos is None:
-			pos = self.pos
-		pos.log("error", msg)
-
-	def warn(self, msg, pos=None):
-		"""Report a warning in the file"""
-		self.nr_warnings += 1
-		if pos is None:
-			pos = self.pos
-		pos.log("warning", msg)
 
 	def validate_interface_name(self, ifname):
 		"""Report an error if an interface name is not valid"""
@@ -168,8 +93,7 @@ class InterfacesFile(object):
 
 		try:
 			try:
-				line = next(self.lines).lstrip().rstrip('\n')
-				self.pos.next_line()
+				line = self._next_line().lstrip().rstrip('\n')
 			except EnvironmentError as ex:
 				self.error('Read error: %s' % ex.strerror)
 				raise StopIteration()
@@ -181,7 +105,7 @@ class InterfacesFile(object):
 			if self.continued_line is None:
 				raise
 			else:
-				self.warn("Trailing backslash at EOF")
+				self.warning("Trailing backslash at EOF")
 				line = ''
 
 		if self.continued_line is not None:
@@ -195,20 +119,13 @@ class InterfacesFile(object):
 
 		self.continued_line = None
 		if '#' in line:
-			self.warn("Possible inline comment found")
-			self.warn("Comments must be on separate lines")
+			self.warning("Possible inline comment found")
+			self.warning("Comments must be on separate lines")
 
 		## Split on whitespace and return the statement
 		fields = line.split(None, 1)
 		if fields:
 			return (fields[0], fields[1])
-
-	def __del__(self):
-		"""Release resources held by this object"""
-		if self.autoclose and self.lines is not None:
-			self.lines.close()
-		self.lines = None
-
 
 ###
 ## Mapping()  -  Object representing an interface mapping script
@@ -304,10 +221,10 @@ class InterfaceConfig(object):
 
 	def _option_parse(self, ifile, first, rest):
 		if not rest:
-			ifile.warn('Option is empty: %s' % first)
+			ifile.warning('Option is empty: %s' % first)
 
 		if first in self.LEGACY_OPTION_SYNONYMS:
-			ifile.warn('Option "%s" is deprecated, please use'
+			ifile.warning('Option "%s" is deprecated, please use'
 					' "%s" instead' % (first,
 					self.LEGACY_OPTION_SYNONYMS[first]))
 			first = self.LEGACY_OPTION_SYNONYMS[first]
