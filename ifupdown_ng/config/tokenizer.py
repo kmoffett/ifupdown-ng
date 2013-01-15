@@ -21,7 +21,6 @@ from __future__ import absolute_import
 
 from ifupdown_ng import parser
 from ifupdown_ng import utils
-from ifupdown_ng.commands import ARGS
 
 class InterfacesFile(parser.FileParser):
 	"""Parse an interfaces(5)-format file into single statements

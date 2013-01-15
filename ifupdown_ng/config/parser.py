@@ -24,16 +24,14 @@ import logging
 import os
 import re
 import subprocess
-import sys
 
-from ifupdown_ng import parser
 from ifupdown_ng import utils
-from ifupdown_ng.autogen.config import *
+from ifupdown_ng.autogen.config import CONFIG_DIR
 from ifupdown_ng.commands import ARGS
 from ifupdown_ng.config import tokenizer
 
 
-logger = logging.getLogger(__name__)
+LOGGER = logging.getLogger(__name__)
 
 def hook_dir(phase_name):
 	"""Compute the hook-script directory for a particular phase."""
@@ -82,15 +80,15 @@ class Mapping(object):
 
 		## Ensure the mapping script completed successfully
 		if proc.returncode < 0:
-			logger.warning('Mapping script died with signal %d'
+			LOGGER.warning('Mapping script died with signal %d'
 					% -proc.returncode)
 			return None
 		if proc.returncode > 0:
-			logger.debug('Mapping script exited with code %d'
+			LOGGER.debug('Mapping script exited with code %d'
 					% proc.returncode)
 			return None
 		if output[0] is None:
-			logger.warning('Mapping script succeeded with no output')
+			LOGGER.warning('Mapping script succeeded with no output')
 			return None
 
 		## Check that it produced a valid interface config name
@@ -98,7 +96,7 @@ class Mapping(object):
 		if utils.valid_interface_name(config_name):
 			return ifname
 
-		logger.error('Mapped %s to invalid interface config name: %s'
+		LOGGER.error('Mapped %s to invalid interface config name: %s'
 				% (ifname, config_name))
 		return None
 
@@ -217,12 +215,12 @@ class SystemConfig(object):
 
 	def log_total_errors(self):
 		if self.total_nr_errors:
-			logger.error('Broken config: %d errors and %d warnings' % (
+			LOGGER.error('Broken config: %d errors and %d warnings' % (
 					self.total_nr_errors,
 					self.total_nr_warnings))
 			return True
 		elif self.total_nr_warnings:
-			logger.warning('Unsafe config: %d warnings' %
+			LOGGER.warning('Unsafe config: %d warnings' %
 					self.total_nr_warnings)
 			return False
 		else:
@@ -238,7 +236,7 @@ class SystemConfig(object):
 			try:
 				ifile = tokenizer.InterfacesFile(ifile)
 			except EnvironmentError as ex:
-				logger.error('%s: %s' % (ex.strerror, ifile))
+				LOGGER.error('%s: %s' % (ex.strerror, ifile))
 				self.total_nr_errors += 1
 				return self
 

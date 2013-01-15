@@ -31,6 +31,7 @@ class LogCount(logging.Filter):
 		_nr_logs: Dict of message counts, indexed by level-nr
 	"""
 	def __init__(self):
+		super(LogCount, self).__init__()
 		self._nr_logs = dict()
 
 	def clear_nr_logs(self):

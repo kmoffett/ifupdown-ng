@@ -40,11 +40,6 @@ class CommandHandlerType(type):
 
 	def __new__(mcs, name, bases, namespace):
 		cls = type.__new__(mcs, name, bases, namespace)
-
-		## Allow abstract base classes
-		if not hasattr(cls, 'COMMANDS'):
-			return cls
-
 		for command in cls.COMMANDS:
 			assert command not in mcs._known_commands
 			mcs._known_commands[command] = cls
@@ -119,16 +114,23 @@ with this program; otherwise you can obtain it here:
 """
 	) % VERSION
 
+	COMMANDS = tuple()
+
 	_LOG_LEVELS = frozenset((
 		'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'
 	))
 
 	def __init__(self, command, **kwargs):
+		self.logger = None
+
 		## Create the argument parser
 		self.argp = argparse.ArgumentParser(prog=command,
 				description=self.COMMANDS[command],
 				**kwargs)
 		self.command = command
+
+		## Keep track of how many total errors/warnings occur
+		self.log_total = logfilter.LogCount()
 
 		## Add common global options
 		self.argp.add_argument('-V', '--version', action='version',
@@ -144,9 +146,6 @@ with this program; otherwise you can obtain it here:
 		## set up the default global stderr logging handler.
 		logging.basicConfig(format='%(levelname)s: %(message)s')
 		self.logger = logging.getLogger()
-
-		## Keep track of how many total errors/warnings occur
-		self.log_total = logfilter.LogCount()
 		self.logger.addFilter(self.log_total)
 
 		## Begin redirecting python warnings into the logging system

@@ -60,3 +60,7 @@ class CommonCommandHandler(commands.CommandHandler):
 			dest='scripts',
 			help=('Disable all hooks (in %s)' %
 				os.path.join(config.CONFIG_DIR, 'if-*.d')))
+
+	def execute(self):
+		## Must be implemented by a subclass
+		raise NotImplementedError()

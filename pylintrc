@@ -27,8 +27,21 @@ ignore=build
 [MESSAGES CONTROL]
 
 ## Disable messages that are particularly spammy:
-##   I0011: Locally disabling %s
-disable=I0011
+##
+## This message occurs whenever a file manually disables a false positive.
+## Since the whole point is to avoid false positives, disable this too:
+##   * I0011: Locally disabling %s
+##
+## These messages occur if an abstract base class isn't subclassed in the
+## same file where it is defined, which sort of misses the point of such
+## abstract base classes:
+##   * R0921: Abstract class not referenced
+##
+## This message occurs when __init__() prefers to assign some internal
+## member variables by poking their corresponding public attributes instead
+## of directly writing the internal state.  It's basically pure spam:
+##   * E0202: An attribute affected in %s line %d hide this method
+disable=I0011,R0921,E0202
 
 
 [REPORTS]

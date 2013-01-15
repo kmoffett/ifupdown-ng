@@ -24,7 +24,6 @@ import os
 import pwd
 import re
 import subprocess
-import sys
 
 from ifupdown_ng.autogen.config import DEFAULT_PATH
 from ifupdown_ng.commands import ARGS
@@ -60,6 +59,7 @@ _TERM_VARS = frozenset((
 ))
 
 def _getpwuid_safe():
+	"""Try to compute user information without throwing any exceptions."""
 	uid = os.getuid()
 	try:
 		return pwd.getpwuid(uid)
@@ -130,7 +130,7 @@ class Environment(object):
 	@term_env.setter
 	def term_env(self, env):
 		if env is None:
-			env = sys.environ
+			env = os.environ
 
 		## First clear out any existing terminal/locale variables
 		for old_key in self._env:
@@ -171,8 +171,8 @@ class Environment(object):
 				if key not in self._env:
 					yield (key, value)
 
-	## Wrap various methods in 'subprocess' for convenience
 	def _wrap_subprocess_func(func):
+		"""Wrap various methods in 'subprocess' for convenience."""
 		@functools.wraps(func)
 		def method(self, *args, **kwargs):
 			kwargs['cwd'] = self._cwd
@@ -243,12 +243,12 @@ class ConfigContext(Context):
 	@classmethod
 	def env_to_option(cls, env):
 		## Make sure to use locale-independent case conversion
-		key = unicode(key)
+		env = unicode(env)
 
-		match = cls.VALID_OPTION_ENV_RE.match(key)
+		match = cls.VALID_OPTION_ENV_RE.match(env)
 		if not match:
 			raise KeyError("Invalid option env: %s" % env)
-		return key[3:].lower().replace('_', '-')
+		return env[3:].lower().replace('_', '-')
 
 	@classmethod
 	def option_to_env(cls, key):

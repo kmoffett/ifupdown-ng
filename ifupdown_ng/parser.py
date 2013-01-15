@@ -118,10 +118,12 @@ class FileParser(object):
 			handler: Default log handler for parse errors and
 				warnings.  Defaults to go to stderr.
 		"""
+		# Stupid broken pylint: disable=W0212
 		self = super(FileParser, cls).__new__(cls)
 		self.logger = self._new_logger()
 		self.logger.addHandler(handler)
 		self.logger.propagate = False
+		# pylint: enable=W0212
 
 		## Set up variables first so __del__ can run even if an
 		## exception occurs in the open() call inside __init__.
@@ -163,7 +165,7 @@ class FileParser(object):
 		return result
 
 	def reset_error_counters(self):
-		elf._log_total.reset_nr_logs()
+		self._log_total.clear_nr_logs()
 
 	@property
 	def nr_errors(self):
